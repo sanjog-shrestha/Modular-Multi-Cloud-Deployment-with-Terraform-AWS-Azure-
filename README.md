@@ -193,16 +193,12 @@ to verify the running web application.
 
 ## 📊 Multi-Cloud Comparison
 
-  ------------------------------------------------------------------------
-  Feature              AWS                      Azure
-  -------------------- ------------------------ --------------------------
-  Networking           VPC + Subnet             VNet + Subnet
-
-  Security             Security Group           Network Security Group
-
-  Compute              EC2 Instance             Virtual Machine
-
-  Provisioning Tool    Terraform AWS Provider   Terraform AzureRM Provider
+ | Feature           | AWS                         | Azure                         |
+|-------------------|-----------------------------|--------------------------------|
+| Networking        | VPC + Subnet                | VNet + Subnet                 |
+| Security          | Security Group              | Network Security Group (NSG)  |
+| Compute           | EC2 Instance                | Virtual Machine               |
+| Provisioning Tool | Terraform AWS Provider      | Terraform AzureRM Provider    |
   ------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
