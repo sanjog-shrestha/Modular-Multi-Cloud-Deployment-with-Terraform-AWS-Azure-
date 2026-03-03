@@ -31,10 +31,8 @@ invokes cloud-specific modules.
 Each cloud deployment includes networking and compute resources suitable
 for hosting a simple web application.
 
-![Architecture Diagram](images/architecture.png)
+<img width="1024" height="1536" alt="image" src="https://github.com/user-attachments/assets/a1ec8c52-c026-4590-bb8f-51d4e2ec8080" />
 
-> Replace this image with your architecture diagram (draw.io,
-> Lucidchart, etc.)
 
 ------------------------------------------------------------------------
 
