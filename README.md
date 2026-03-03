@@ -45,7 +45,8 @@ allowed) - EC2 Instance - Dockerized Nginx Web Server
 
 AWS Console Screenshot:
 
-![AWS Infrastructure](images/aws-console.png)
+<img width="1546" height="622" alt="image" src="https://github.com/user-attachments/assets/6f3c9f9b-66dc-40ea-8aea-e317b15a300a" />
+
 
 ------------------------------------------------------------------------
 
@@ -56,7 +57,8 @@ Subnet - Network Security Group - Virtual Machine
 
 Azure Portal Screenshot:
 
-![Azure Infrastructure](images/azure-console.png)
+<img width="1918" height="683" alt="image" src="https://github.com/user-attachments/assets/e8465192-17e5-4101-a30d-4c2d57ffed74" />
+
 
 ------------------------------------------------------------------------
 
@@ -165,7 +167,13 @@ across providers.
 
 ## 🔍 Terraform Plan Output
 
-![Terraform Plan](images/terraform-plan.png)
+<img width="642" height="892" alt="image" src="https://github.com/user-attachments/assets/3bc8f8ec-f59a-4b89-b0f9-22d36cbd6582" />
+<img width="723" height="762" alt="image" src="https://github.com/user-attachments/assets/1221d06c-e9ef-4747-af2c-66bb750a5efa" />
+<img width="992" height="978" alt="image" src="https://github.com/user-attachments/assets/91979765-a122-431d-8c10-bc77ab4f76d9" />
+<img width="732" height="948" alt="image" src="https://github.com/user-attachments/assets/d0edc276-223d-47bb-8afc-2e1941f49ae0" />
+<img width="807" height="955" alt="image" src="https://github.com/user-attachments/assets/99bcd47f-df95-4886-8b4f-0062f72f60c3" />
+<img width="821" height="598" alt="image" src="https://github.com/user-attachments/assets/734fcda4-14d7-426c-bc31-e5ba6feca2cb" />
+
 
 ------------------------------------------------------------------------
 
@@ -173,8 +181,12 @@ across providers.
 
 Once deployed, access the public IP address of the provisioned instance
 to verify the running web application.
+<img width="962" height="143" alt="image" src="https://github.com/user-attachments/assets/f03f7c83-194d-48ca-a53b-62eb94a4a03a" />
+<img width="1917" height="1002" alt="image" src="https://github.com/user-attachments/assets/c0ada7ce-53f9-4711-80da-dc289128072f" />
+<img width="863" height="925" alt="image" src="https://github.com/user-attachments/assets/f1dd56a7-33e6-4959-815e-63cc76213b36" />
+<img width="582" height="122" alt="image" src="https://github.com/user-attachments/assets/c531803d-2c7b-439b-91eb-c39a399237cf" />
 
-![Application Running](images/app-running.png)
+
 
 ------------------------------------------------------------------------
 
@@ -234,8 +246,7 @@ Potential enhancements:
 
 ## 📄 Author
 
-Your Name\
-DevOps / Cloud Engineer
+Sanjog Shrestha
 
 ------------------------------------------------------------------------
 
