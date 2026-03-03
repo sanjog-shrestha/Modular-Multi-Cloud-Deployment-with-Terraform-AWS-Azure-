@@ -173,6 +173,8 @@ across providers.
 <img width="732" height="948" alt="image" src="https://github.com/user-attachments/assets/d0edc276-223d-47bb-8afc-2e1941f49ae0" />
 <img width="807" height="955" alt="image" src="https://github.com/user-attachments/assets/99bcd47f-df95-4886-8b4f-0062f72f60c3" />
 <img width="821" height="598" alt="image" src="https://github.com/user-attachments/assets/734fcda4-14d7-426c-bc31-e5ba6feca2cb" />
+<img width="863" height="925" alt="image" src="https://github.com/user-attachments/assets/f1dd56a7-33e6-4959-815e-63cc76213b36" />
+<img width="582" height="122" alt="image" src="https://github.com/user-attachments/assets/c531803d-2c7b-439b-91eb-c39a399237cf" />
 
 
 ------------------------------------------------------------------------
@@ -183,8 +185,7 @@ Once deployed, access the public IP address of the provisioned instance
 to verify the running web application.
 <img width="962" height="143" alt="image" src="https://github.com/user-attachments/assets/f03f7c83-194d-48ca-a53b-62eb94a4a03a" />
 <img width="1917" height="1002" alt="image" src="https://github.com/user-attachments/assets/c0ada7ce-53f9-4711-80da-dc289128072f" />
-<img width="863" height="925" alt="image" src="https://github.com/user-attachments/assets/f1dd56a7-33e6-4959-815e-63cc76213b36" />
-<img width="582" height="122" alt="image" src="https://github.com/user-attachments/assets/c531803d-2c7b-439b-91eb-c39a399237cf" />
+
 
 
 
