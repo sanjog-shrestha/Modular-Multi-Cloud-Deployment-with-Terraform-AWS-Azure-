@@ -44,7 +44,10 @@ Root Module (main.tf)
 ```
 
 > 📸 **Architecture Screenshot:**
-> ![Architecture](./screenshots/architecture.png)
+
+<img width="1024" height="1536" alt="image" src="https://github.com/user-attachments/assets/761cb7cc-065d-4aa6-85e3-0e7ba92a63ea" />
+
+
 
 ---
 
@@ -66,7 +69,8 @@ Root Module (main.tf)
 | ALB Listener | Forwards port 80 traffic to target group |
 
 > 📸 **AWS Console Screenshot:**
-> ![AWS Console](./screenshots/aws-console.png)
+<img width="1627" height="818" alt="image" src="https://github.com/user-attachments/assets/6a71af1d-bfff-40ed-85e5-df256022eae0" />
+
 
 ---
 
@@ -87,8 +91,10 @@ Root Module (main.tf)
 | Health Probe | HTTP probe on port 80 checking `/` |
 | Load Balancing Rule | Maps frontend HTTP (port 80) to backend pool |
 
+
 > 📸 **Azure Portal Screenshot:**
-> ![Azure Portal](./screenshots/azure-console.png)
+
+<img width="1187" height="882" alt="image" src="https://github.com/user-attachments/assets/420dca21-8d85-4a95-a1e8-7e2a83c8d7ed" />
 
 ---
 
@@ -115,7 +121,8 @@ terraform {
 ```
 
 > 📸 **S3 Backend Screenshot:**
-> ![S3 Backend](./screenshots/s3-backend.png)
+<img width="1915" height="512" alt="image" src="https://github.com/user-attachments/assets/dcffa123-2590-4002-b8f3-647aea6a15d0" />
+
 
 ---
 
@@ -265,10 +272,11 @@ terraform apply
 
 ---
 
-## 🔍 Terraform Plan Output
+## 🔍 Terraform Apply Output
 
-> 📸 **Plan Screenshot:**
-> ![Terraform Plan](./screenshots/terraform-plan.png)
+> 📸 **Apply Screenshot:**
+<img width="746" height="137" alt="image" src="https://github.com/user-attachments/assets/9c4c0908-7836-4b3b-80ec-d05ffa016c22" />
+
 
 ---
 
@@ -284,7 +292,7 @@ azure_lb_ip    = "xx.xx.xx.xx"
 Open each in your browser to verify the web application is running and load-balanced correctly on both clouds.
 
 > 📸 **App Validation Screenshot:**
-> ![Live App](./screenshots/app-live.png)
+<img width="1918" height="637" alt="image" src="https://github.com/user-attachments/assets/c956b41e-5995-4140-b2f4-2af7feb60b82" />
 
 ---
 
