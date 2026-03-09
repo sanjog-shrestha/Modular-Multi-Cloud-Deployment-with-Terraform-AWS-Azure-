@@ -18,6 +18,7 @@
 module "aws" {
   source = "./modules/aws"        # Path to AWS module directory
   count  = var.deploy_aws ? 1 : 0 # Deploy if 'deploy_aws' is true
+  aws_region = var.aws_region 
 }
 
 # -----------------------------------------------------------------------------

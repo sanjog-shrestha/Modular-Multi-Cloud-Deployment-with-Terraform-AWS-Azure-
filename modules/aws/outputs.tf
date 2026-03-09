@@ -8,10 +8,10 @@
 output "instance_id" {
     description = "ID of the EC2 instance"
     value       = aws_instance.web.id
+    sensitive = true
 }
 
-# Output the public IP address of the EC2 instance
-output "public_ip" {
-    description = "Public IP of the EC2 instance"
-    value       = aws_instance.web.public_ip
+output "aws_alb_dns" {
+    description = "AWS ALB DNS name - paste into browser to access app"
+    value = aws_lb.main.dns_name
 }

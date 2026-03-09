@@ -27,8 +27,18 @@ resource "aws_vpc" "main" {
 # Create a public subnet inside the above VPC
 resource "aws_subnet" "main" {
     vpc_id     = aws_vpc.main.id      # Link subnet to VPC
-    cidr_block = "10.1.1.0/24"        # Defines the subnet's range inside the VPC
+    cidr_block = "10.1.1.0/24"
+    availability_zone = "${var.aws_region}a"        # Defines the subnet's range inside the VPC
     tags       = local.common_tags    # Attach the common project tag
+    map_public_ip_on_launch = true
+}
+
+resource "aws_subnet" "secondary" {
+    vpc_id     = aws_vpc.main.id      # Link subnet to VPC
+    cidr_block = "10.1.2.0/24"
+    availability_zone = "${var.aws_region}b"        # Defines the subnet's range inside the VPC
+    tags       = local.common_tags    # Attach the common project tag
+    map_public_ip_on_launch = true
 }
 
 # Define a security group to allow HTTP access to the EC2 instance
@@ -40,26 +50,64 @@ resource "aws_security_group" "web" {
         from_port   = 80               # Open port 80
         to_port     = 80
         protocol    = "tcp"
-        cidr_blocks = ["0.0.0.0/0"]    # Allow from any IP (not recommended for production)
+        security_groups = [aws_security_group.alb.id]    # Allow from any IP (not recommended for production)
     }
+
+    egress {
+        from_port = 0
+        to_port = 0 
+        protocol = "-1"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+    
 
     tags = local.common_tags           # Attach the common project tag
 }
 
 # Launch an EC2 instance running Docker with Nginx
 resource "aws_instance" "web" {
-    ami                    = "ami-018ff7ece22bf96db"    # Ubuntu AMI; update for your AWS region if needed
-    instance_type          = "t2.micro"                  # Free tier/smallest instance for demo/testing
-    subnet_id              = aws_subnet.main.id          # Place instance in previously created subnet
-    vpc_security_group_ids = [aws_security_group.web.id] # Attach security group allowing HTTP access
+  ami                    = "ami-018ff7ece22bf96db"
+  instance_type          = "t3.micro"
+  subnet_id              = aws_subnet.main.id
+  vpc_security_group_ids = [aws_security_group.web.id]
 
-    # This user_data script installs Docker and launches an Nginx container, so you'll see a running web server in your instance
-    user_data = <<-EOF
-                #!/bin/bash
-                apt update -y
-                apt install docker.io -y
-                docker run -d -p 80:80 nginx
-                EOF
+  # ✅ Fixed indentation — original had too much whitespace
+  user_data = <<-EOF
+#!/bin/bash
+apt-get update -y
+apt-get install -y nginx
+systemctl start nginx
+systemctl enable nginx 
+echo "<h1>nginx on AWS EC2 - multi-cloud-demo</h1>" > /var/www/html/index.html
+EOF
 
-    tags = local.common_tags            # Attach the common project tag (very important for identification and grouping)
+  tags = local.common_tags
+}
+
+resource "aws_internet_gateway" "main" {
+    vpc_id = aws_vpc.main.id
+
+    tags = local.common_tags
+  
+}
+
+resource "aws_route_table" "public" {
+    vpc_id = aws_vpc.main.id 
+
+    route {
+        cidr_block = "0.0.0.0/0"
+        gateway_id = aws_internet_gateway.main.id 
+    }  
+
+    tags = local.common_tags
+}
+
+resource "aws_route_table_association" "main" {
+    subnet_id = aws_subnet.main.id 
+    route_table_id = aws_route_table.public.id  
+}
+
+resource "aws_route_table_association" "secondary" {
+    subnet_id = aws_subnet.secondary.id  
+    route_table_id = aws_route_table.public.id  
 }
