@@ -1,252 +1,356 @@
-# 🌍 Multi-Cloud Infrastructure Deployment with Terraform (AWS + Azure)
+# 🌍 Modular Multi-Cloud Infrastructure Deployment with Terraform (AWS + Azure)
 
 ## 📌 Overview
 
-This project demonstrates a modular, production-style multi-cloud
-infrastructure deployment using HashiCorp Terraform.
+This project demonstrates a **modular, production-style multi-cloud infrastructure deployment** using **HashiCorp Terraform** across two major cloud providers simultaneously:
 
-The same infrastructure pattern is deployed across:
-
--   Amazon Web Services (AWS)
--   Microsoft Azure
+- **Amazon Web Services (AWS)**
+- **Microsoft Azure**
 
 The design follows infrastructure-as-code best practices:
+- Separate Terraform modules per cloud provider
+- Root module orchestration with conditional deployment logic
+- Remote backend state management (S3 with versioning and encryption)
+- Application Load Balancer on AWS and Standard Load Balancer on Azure
+- Reusable, maintainable, and cloud-agnostic infrastructure components
 
--   Separate Terraform modules per cloud provider
--   Root module orchestration
--   Conditional deployment logic
--   Remote backend state management
--   Reusable, maintainable infrastructure components
+This project highlights **cloud-agnostic design**, **infrastructure modularity**, **load balancer provisioning across providers**, and **Terraform state consistency** across cloud environments.
 
-This project highlights cloud-agnostic design, infrastructure
-modularity, and Terraform state consistency across providers.
+---
 
-------------------------------------------------------------------------
+## 🏗️ Architecture
 
-## 🏗 Architecture
+The infrastructure is structured with a root module that conditionally invokes cloud-specific modules.
 
-The infrastructure is structured with a root module that conditionally
-invokes cloud-specific modules.
+Each cloud deployment provisions networking, compute, and load balancing resources suitable for hosting a web application — deployed in parallel with a single `terraform apply`.
 
-Each cloud deployment includes networking and compute resources suitable
-for hosting a simple web application.
+```
+Root Module (main.tf)
+        │
+        ├── var.deploy_aws = true
+        │        └── modules/aws/
+        │              ├── VPC + Subnets
+        │              ├── Security Group (ALB + EC2)
+        │              ├── EC2 Instance (Dockerized Nginx)
+        │              └── Application Load Balancer (ALB)
+        │
+        └── var.deploy_azure = true
+                 └── modules/azure/
+                       ├── Resource Group
+                       ├── Virtual Network (VNet) + Subnet
+                       ├── Network Security Group (NSG)
+                       ├── Virtual Machine
+                       └── Standard Load Balancer (with Public IP)
+```
 
-<img width="1024" height="1536" alt="image" src="https://github.com/user-attachments/assets/a1ec8c52-c026-4590-bb8f-51d4e2ec8080" />
+> 📸 **Architecture Screenshot:**
+> ![Architecture](./screenshots/architecture.png)
 
+---
 
-------------------------------------------------------------------------
-
-## ☁ Cloud Deployments
+## ☁️ Cloud Deployments
 
 ### 🔹 AWS Deployment
 
-Provisioned Resources: - VPC - Public Subnet - Security Group (HTTP
-allowed) - EC2 Instance - Dockerized Nginx Web Server
+**Provisioned Resources:**
 
-AWS Console Screenshot:
+| Resource | Description |
+|---|---|
+| VPC | Custom network with DNS support enabled |
+| Public Subnets (×2) | Multi-AZ subnets for ALB and EC2 |
+| Security Group (ALB) | Allows HTTP (port 80) from internet |
+| Security Group (EC2) | Allows HTTP from ALB only |
+| EC2 Instance | Ubuntu with Dockerized Nginx web server |
+| Application Load Balancer | Internet-facing ALB across both public subnets |
+| Target Group | HTTP target group with health check on `/` |
+| ALB Listener | Forwards port 80 traffic to target group |
 
-<img width="1546" height="622" alt="image" src="https://github.com/user-attachments/assets/6f3c9f9b-66dc-40ea-8aea-e317b15a300a" />
+> 📸 **AWS Console Screenshot:**
+> ![AWS Console](./screenshots/aws-console.png)
 
-
-------------------------------------------------------------------------
+---
 
 ### 🔹 Azure Deployment
 
-Provisioned Resources: - Resource Group - Virtual Network (VNet) -
-Subnet - Network Security Group - Virtual Machine
+**Provisioned Resources:**
 
-Azure Portal Screenshot:
+| Resource | Description |
+|---|---|
+| Resource Group | Container for all Azure resources |
+| Virtual Network (VNet) | `10.0.0.0/16` address space |
+| Subnet | `10.0.1.0/24` for VM placement |
+| Network Security Group | Controls inbound/outbound traffic |
+| Virtual Machine | Web server in the VNet subnet |
+| Public IP (Static) | Standard SKU static IP for the Load Balancer |
+| Standard Load Balancer | Internet-facing LB with frontend IP configuration |
+| Backend Address Pool | Pool for associating VMs/VMSS instances |
+| Health Probe | HTTP probe on port 80 checking `/` |
+| Load Balancing Rule | Maps frontend HTTP (port 80) to backend pool |
 
-<img width="1918" height="683" alt="image" src="https://github.com/user-attachments/assets/e8465192-17e5-4101-a30d-4c2d57ffed74" />
+> 📸 **Azure Portal Screenshot:**
+> ![Azure Portal](./screenshots/azure-console.png)
 
+---
 
-------------------------------------------------------------------------
+## 🗄️ Remote State Backend
+
+Terraform state is stored remotely in a **dedicated S3 bucket** that is itself provisioned and managed by Terraform (`s3-bucket.tf`).
+
+| Feature | Configuration |
+|---|---|
+| S3 Bucket | `multi-cloud-tf-state-19` (eu-west-2) |
+| Versioning | Enabled — allows state rollback |
+| Encryption | AES256 server-side encryption at rest |
+| Public Access | Fully blocked — all public ACLs and policies denied |
+| State Key | `terraform.tfstate` |
+
+```hcl
+terraform {
+  backend "s3" {
+    bucket = "multi-cloud-tf-state-19"
+    key    = "terraform.tfstate"
+    region = "eu-west-2"
+  }
+}
+```
+
+> 📸 **S3 Backend Screenshot:**
+> ![S3 Backend](./screenshots/s3-backend.png)
+
+---
 
 ## 📂 Repository Structure
 
-    multi-cloud-terraform/
-    │
-    ├── modules/
-    │   ├── aws/
-    │   └── azure/
-    │
-    ├── backend.tf
-    ├── providers.tf
-    ├── variables.tf
-    ├── main.tf
-    ├── terraform.tfvars
-    └── README.md
+```
+multi-cloud-terraform/
+│
+├── backend.tf              # Remote S3 backend + provider version constraints
+├── providers.tf            # AWS and AzureRM provider configuration
+├── variables.tf            # Root input variables (regions, deploy flags)
+├── main.tf                 # Root module — conditional module invocation
+├── outputs.tf              # Root outputs (ALB DNS, Azure LB IP, etc.)
+├── s3-bucket.tf            # S3 bucket for remote state (versioned + encrypted)
+│
+├── modules/
+│   ├── aws/
+│   │   ├── main.tf         # VPC, subnets, EC2, security groups
+│   │   ├── aws_alb.tf      # ALB, target group, listener, ALB security group
+│   │   ├── variables.tf    # AWS module input variables
+│   │   └── outputs.tf      # AWS module outputs (ALB DNS, EC2 IP)
+│   │
+│   └── azure/
+│       ├── main.tf         # Resource group, VNet, subnet, NSG, VM
+│       ├── azure_lb.tf     # Public IP, Load Balancer, backend pool, probe, rule
+│       ├── variables.tf    # Azure module input variables
+│       └── outputs.tf      # Azure module outputs (LB public IP, RG name)
+```
 
-### Structure Explanation
+### File Explanations
 
--   **modules/aws** → AWS-specific infrastructure resources
--   **modules/azure** → Azure-specific infrastructure resources
--   **main.tf** → Root orchestration layer
--   **providers.tf** → Cloud provider configuration
--   **backend.tf** → Remote state backend configuration
--   **variables.tf** → Input variable definitions
+| File | Purpose |
+|---|---|
+| `backend.tf` | Configures S3 remote state backend and pins AWS `~> 5.100.0` + AzureRM `~> 3.117.1` |
+| `providers.tf` | Configures AWS and AzureRM providers with region variables |
+| `variables.tf` | Root variables: `aws_region`, `azure_location`, `deploy_aws`, `deploy_azure` |
+| `main.tf` | Conditionally calls AWS and Azure modules based on boolean flags |
+| `s3-bucket.tf` | Provisions the S3 state bucket with versioning, encryption, and public access block |
+| `modules/aws/main.tf` | VPC, public subnets, EC2 with Nginx, security groups |
+| `modules/aws/aws_alb.tf` | ALB, security group, target group with health check, HTTP listener |
+| `modules/azure/main.tf` | Resource group, VNet, subnet |
+| `modules/azure/azure_lb.tf` | Static public IP, Standard LB, backend pool, HTTP probe, LB rule |
 
-------------------------------------------------------------------------
+---
 
-## ⚙ Terraform Design Approach
+## ⚙️ Terraform Design Approach
 
 ### 1️⃣ Modular Architecture
 
-Each cloud provider is implemented as an independent Terraform module.\
-This ensures:
-
--   Reusability
--   Clear separation of concerns
--   Easier maintenance
--   Cloud-specific customization without impacting other providers
-
-------------------------------------------------------------------------
+Each cloud provider is implemented as an independent Terraform module. This ensures:
+- Reusability across environments and projects
+- Clear separation of concerns per provider
+- Cloud-specific customisation without impacting other providers
+- Each module can be tested and deployed independently
 
 ### 2️⃣ Conditional Deployment Logic
 
-The root module uses boolean variables to control deployment:
+The root module uses boolean variables to control which clouds are deployed:
 
-    deploy_aws   = true
-    deploy_azure = true
+```hcl
+deploy_aws   = true
+deploy_azure = true
+```
 
 This allows:
+- AWS-only deployment
+- Azure-only deployment
+- Simultaneous multi-cloud deployment
 
--   AWS-only deployment
--   Azure-only deployment
--   Simultaneous multi-cloud deployment
+```bash
+# Deploy to AWS only
+terraform apply -var="deploy_azure=false"
 
-Example:
+# Deploy to Azure only
+terraform apply -var="deploy_aws=false"
 
-    terraform apply -var="deploy_azure=false"
+# Deploy to both clouds
+terraform apply
+```
 
-------------------------------------------------------------------------
+### 3️⃣ Load Balancer Parity Across Providers
 
-### 3️⃣ Remote State Management
+Both cloud deployments include a production-style load balancer in front of compute resources:
 
-Terraform remote backend is configured to:
+| Feature | AWS | Azure |
+|---|---|---|
+| Load Balancer Type | Application Load Balancer (ALB) | Standard Load Balancer |
+| IP Type | Dynamic (DNS-based) | Static Public IP |
+| Health Check | HTTP GET `/` — expects 200 | HTTP probe on port 80 hitting `/` |
+| Target Registration | EC2 instance via Target Group | VM via Backend Address Pool |
+| SKU | N/A (ALB is always standard) | Standard SKU |
 
--   Maintain infrastructure consistency
--   Detect configuration drift
--   Enable controlled updates
--   Support rollback via state versioning
+### 4️⃣ Remote State Management (S3)
 
-Example backend (S3):
+The S3 backend provides:
+- Centralised state for team collaboration
+- State versioning for rollback capability
+- AES256 encryption at rest
+- Fully blocked public access (state files must never be public)
+- Drift detection and controlled update workflows
 
-    terraform {
-      backend "s3" {
-        bucket = "multi-cloud-tf-state"
-        key    = "global/terraform.tfstate"
-        region = "eu-west-2"
-      }
-    }
+The S3 bucket itself is provisioned by Terraform in `s3-bucket.tf`, making the state infrastructure fully code-managed.
 
-State management ensures reliable infrastructure lifecycle control
-across providers.
+### 5️⃣ Consistent Tagging Strategy
 
-------------------------------------------------------------------------
+Every resource across both clouds is tagged with `project = "multi-cloud-demo"`, enabling:
+- Filtering all demo resources in a single AWS Console or Azure Portal view
+- Cost allocation per project
+- Easy cleanup — filter by tag and delete
+
+---
 
 ## 🚀 Deployment Instructions
 
-### Initialize Terraform
+### Prerequisites
+- [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.0
+- [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) configured with valid credentials
+- [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) configured (`az login`)
 
-    terraform init
+### Steps
 
-### Validate Configuration
+**1. Clone the repository**
+```bash
+git clone https://github.com/sanjog-shrestha/Modular-Multi-Cloud-Deployment-with-Terraform-AWS-Azure-.git
+cd Modular-Multi-Cloud-Deployment-with-Terraform-AWS-Azure-
+```
 
-    terraform validate
+**2. Initialize Terraform**
+```bash
+terraform init
+```
 
-### Review Execution Plan
+**3. Validate Configuration**
+```bash
+terraform validate
+```
 
-    terraform plan
+**4. Review Execution Plan**
+```bash
+terraform plan
+```
 
-### Apply Infrastructure
+**5. Apply Infrastructure**
+```bash
+terraform apply
+```
 
-    terraform apply
-
-------------------------------------------------------------------------
+---
 
 ## 🔍 Terraform Plan Output
 
-<img width="642" height="892" alt="image" src="https://github.com/user-attachments/assets/3bc8f8ec-f59a-4b89-b0f9-22d36cbd6582" />
-<img width="723" height="762" alt="image" src="https://github.com/user-attachments/assets/1221d06c-e9ef-4747-af2c-66bb750a5efa" />
-<img width="992" height="978" alt="image" src="https://github.com/user-attachments/assets/91979765-a122-431d-8c10-bc77ab4f76d9" />
-<img width="732" height="948" alt="image" src="https://github.com/user-attachments/assets/d0edc276-223d-47bb-8afc-2e1941f49ae0" />
-<img width="807" height="955" alt="image" src="https://github.com/user-attachments/assets/99bcd47f-df95-4886-8b4f-0062f72f60c3" />
-<img width="821" height="598" alt="image" src="https://github.com/user-attachments/assets/734fcda4-14d7-426c-bc31-e5ba6feca2cb" />
-<img width="863" height="925" alt="image" src="https://github.com/user-attachments/assets/f1dd56a7-33e6-4959-815e-63cc76213b36" />
-<img width="582" height="122" alt="image" src="https://github.com/user-attachments/assets/c531803d-2c7b-439b-91eb-c39a399237cf" />
+> 📸 **Plan Screenshot:**
+> ![Terraform Plan](./screenshots/terraform-plan.png)
 
-
-------------------------------------------------------------------------
+---
 
 ## 🌐 Application Validation
 
-Once deployed, access the public IP address of the provisioned instance
-to verify the running web application.
-<img width="962" height="143" alt="image" src="https://github.com/user-attachments/assets/f03f7c83-194d-48ca-a53b-62eb94a4a03a" />
-<img width="1917" height="1002" alt="image" src="https://github.com/user-attachments/assets/c0ada7ce-53f9-4711-80da-dc289128072f" />
+Once deployed, Terraform outputs the public endpoints for both clouds:
 
+```
+aws_alb_dns    = "multi-cloud-alb-xxxxxxxxxxxx.eu-west-2.elb.amazonaws.com"
+azure_lb_ip    = "xx.xx.xx.xx"
+```
 
+Open each in your browser to verify the web application is running and load-balanced correctly on both clouds.
 
+> 📸 **App Validation Screenshot:**
+> ![Live App](./screenshots/app-live.png)
 
-------------------------------------------------------------------------
+---
 
 ## 📊 Multi-Cloud Comparison
 
- | Feature           | AWS                         | Azure                         |
-|-------------------|-----------------------------|--------------------------------|
-| Networking        | VPC + Subnet                | VNet + Subnet                 |
-| Security          | Security Group              | Network Security Group (NSG)  |
-| Compute           | EC2 Instance                | Virtual Machine               |
-| Provisioning Tool | Terraform AWS Provider      | Terraform AzureRM Provider    |
-  ------------------------------------------------------------------------
+| Feature | AWS | Azure |
+|---|---|---|
+| Networking | VPC + Public Subnets | VNet + Subnet |
+| Security | Security Groups (ALB + EC2) | Network Security Group (NSG) |
+| Compute | EC2 Instance (Ubuntu + Nginx) | Virtual Machine |
+| Load Balancer | Application Load Balancer (ALB) | Standard Load Balancer |
+| LB Public IP | DNS-based (dynamic) | Static Public IP (Standard SKU) |
+| Health Check | Target Group HTTP probe | LB HTTP probe on `/` |
+| State Backend | S3 (versioned + encrypted) | — (shared S3 backend) |
+| Provisioning Tool | Terraform AWS Provider `~> 5.100.0` | Terraform AzureRM Provider `~> 3.117.1` |
 
-------------------------------------------------------------------------
+---
 
 ## 🧠 Key Concepts Demonstrated
 
--   Multi-provider Terraform configuration
--   Infrastructure modularization
--   Conditional module invocation
--   Remote backend state management
--   Cloud networking fundamentals
--   Secure infrastructure provisioning
--   Provider abstraction and portability
+- Multi-provider Terraform configuration (AWS + Azure simultaneously)
+- Infrastructure modularisation with per-cloud module separation
+- Conditional module invocation via boolean deployment flags
+- Application Load Balancer (AWS) and Standard Load Balancer (Azure) provisioning
+- Remote backend state management with S3 (versioned, encrypted, public-access-blocked)
+- S3 state bucket provisioned and managed by Terraform itself
+- Consistent cross-cloud tagging strategy for resource grouping and cost tracking
+- Cloud networking fundamentals across both providers
+- Provider abstraction and infrastructure portability
 
-------------------------------------------------------------------------
+---
 
 ## 🏁 Project Outcomes
 
 This project demonstrates the ability to:
 
--   Architect cloud-agnostic infrastructure
--   Implement modular Terraform design patterns
--   Deploy infrastructure across multiple cloud providers
--   Manage state consistently across environments
--   Apply infrastructure-as-code best practices
+- Architect cloud-agnostic infrastructure deployable across multiple providers
+- Implement modular Terraform design patterns with clean module separation
+- Deploy load-balanced infrastructure simultaneously on AWS and Azure
+- Manage remote state securely with versioning and encryption
+- Apply consistent tagging and naming conventions across cloud providers
+- Use conditional logic to control multi-cloud deployment scope
 
-------------------------------------------------------------------------
+---
 
 ## 🔮 Future Improvements
 
 Potential enhancements:
 
--   Load Balancer integration
--   DNS-based failover
--   Active-passive multi-cloud routing
--   Cost estimation with Terraform
--   Monitoring stack integration
--   Infrastructure tagging strategy
--   Production-grade security hardening
+- [ ] HTTPS on both load balancers (ACM on AWS, Azure Key Vault cert on Azure)
+- [ ] DNS-based failover with Route 53 and Azure Traffic Manager
+- [ ] Active-passive multi-cloud routing for disaster recovery
+- [ ] DynamoDB state locking to prevent concurrent apply conflicts
+- [ ] GCP module addition for true three-cloud deployment
+- [ ] Cost estimation with Infracost integration
+- [ ] Monitoring stack (CloudWatch + Azure Monitor)
+- [ ] CI/CD pipeline with GitHub Actions deploying both clouds
 
-------------------------------------------------------------------------
+---
 
 ## 📄 Author
 
-Sanjog Shrestha
+**Sanjog Shrestha**
 
-------------------------------------------------------------------------
+---
 
 ## 📜 License
 
-This project is for educational and portfolio purposes.
+This project is intended for educational and portfolio purposes.
