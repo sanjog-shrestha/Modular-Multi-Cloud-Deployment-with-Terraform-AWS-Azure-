@@ -10,7 +10,7 @@ This project demonstrates a **modular, production-style multi-cloud infrastructu
 The design follows infrastructure-as-code best practices:
 - Separate Terraform modules per cloud provider
 - Root module orchestration with conditional deployment logic
-- Remote backend state management (S3 with versioning and encryption)
+- Remote backend state management (S3 with versioning, encryption, and DynamoDB state locking)
 - Application Load Balancer on AWS and Standard Load Balancer on Azure
 - Reusable, maintainable, and cloud-agnostic infrastructure components
 
@@ -44,10 +44,7 @@ Root Module (main.tf)
 ```
 
 > 📸 **Architecture Screenshot:**
-
 <img width="1024" height="1536" alt="image" src="https://github.com/user-attachments/assets/761cb7cc-065d-4aa6-85e3-0e7ba92a63ea" />
-
-
 
 ---
 
@@ -71,7 +68,6 @@ Root Module (main.tf)
 > 📸 **AWS Console Screenshot:**
 <img width="1627" height="818" alt="image" src="https://github.com/user-attachments/assets/6a71af1d-bfff-40ed-85e5-df256022eae0" />
 
-
 ---
 
 ### 🔹 Azure Deployment
@@ -91,16 +87,14 @@ Root Module (main.tf)
 | Health Probe | HTTP probe on port 80 checking `/` |
 | Load Balancing Rule | Maps frontend HTTP (port 80) to backend pool |
 
-
 > 📸 **Azure Portal Screenshot:**
-
 <img width="1187" height="882" alt="image" src="https://github.com/user-attachments/assets/420dca21-8d85-4a95-a1e8-7e2a83c8d7ed" />
 
 ---
 
 ## 🗄️ Remote State Backend
 
-Terraform state is stored remotely in a **dedicated S3 bucket** that is itself provisioned and managed by Terraform (`s3-bucket.tf`).
+Terraform state is stored remotely in a **dedicated S3 bucket** provisioned and managed by Terraform (`s3-bucket.tf`), with concurrent write protection provided by a **DynamoDB lock table** (`dynamodb.tf`).
 
 | Feature | Configuration |
 |---|---|
@@ -109,13 +103,17 @@ Terraform state is stored remotely in a **dedicated S3 bucket** that is itself p
 | Encryption | AES256 server-side encryption at rest |
 | Public Access | Fully blocked — all public ACLs and policies denied |
 | State Key | `terraform.tfstate` |
+| State Locking | DynamoDB table `multi-cloud-tf-locks` — prevents concurrent apply conflicts |
+| Lock Billing | PAY_PER_REQUEST — zero cost when idle |
 
 ```hcl
 terraform {
   backend "s3" {
-    bucket = "multi-cloud-tf-state-19"
-    key    = "terraform.tfstate"
-    region = "eu-west-2"
+    bucket         = "multi-cloud-tf-state-19"
+    key            = "terraform.tfstate"
+    region         = "eu-west-2"
+    dynamodb_table = "multi-cloud-tf-locks"
+    encrypt        = true
   }
 }
 ```
@@ -123,6 +121,9 @@ terraform {
 > 📸 **S3 Backend Screenshot:**
 <img width="1915" height="512" alt="image" src="https://github.com/user-attachments/assets/dcffa123-2590-4002-b8f3-647aea6a15d0" />
 
+> 📸 **DynamoDB Lock Table Screenshot:**
+<!-- TO ADD: Go to AWS Console → DynamoDB → Tables → multi-cloud-tf-locks → take a screenshot showing the table exists → upload to GitHub and replace this line with the img tag -->
+> ⚠️ *Replace this line with your DynamoDB lock table screenshot after applying infrastructure*
 
 ---
 
@@ -131,12 +132,13 @@ terraform {
 ```
 multi-cloud-terraform/
 │
-├── backend.tf              # Remote S3 backend + provider version constraints
+├── backend.tf              # Remote S3 backend + DynamoDB locking + provider version constraints
 ├── providers.tf            # AWS and AzureRM provider configuration
 ├── variables.tf            # Root input variables (regions, deploy flags)
 ├── main.tf                 # Root module — conditional module invocation
-├── outputs.tf              # Root outputs (ALB DNS, Azure LB IP, etc.)
+├── outputs.tf              # Root outputs (ALB DNS, Azure LB IP, DynamoDB table name)
 ├── s3-bucket.tf            # S3 bucket for remote state (versioned + encrypted)
+├── dynamodb.tf             # DynamoDB lock table for concurrent apply protection
 │
 ├── modules/
 │   ├── aws/
@@ -156,11 +158,12 @@ multi-cloud-terraform/
 
 | File | Purpose |
 |---|---|
-| `backend.tf` | Configures S3 remote state backend and pins AWS `~> 5.100.0` + AzureRM `~> 3.117.1` |
+| `backend.tf` | Configures S3 remote state backend with DynamoDB locking, pins AWS `~> 5.100.0` + AzureRM `~> 3.117.1` |
 | `providers.tf` | Configures AWS and AzureRM providers with region variables |
 | `variables.tf` | Root variables: `aws_region`, `azure_location`, `deploy_aws`, `deploy_azure` |
 | `main.tf` | Conditionally calls AWS and Azure modules based on boolean flags |
 | `s3-bucket.tf` | Provisions the S3 state bucket with versioning, encryption, and public access block |
+| `dynamodb.tf` | Provisions the DynamoDB lock table with `prevent_destroy` and project tagging |
 | `modules/aws/main.tf` | VPC, public subnets, EC2 with Nginx, security groups |
 | `modules/aws/aws_alb.tf` | ALB, security group, target group with health check, HTTP listener |
 | `modules/azure/main.tf` | Resource group, VNet, subnet |
@@ -215,16 +218,15 @@ Both cloud deployments include a production-style load balancer in front of comp
 | Target Registration | EC2 instance via Target Group | VM via Backend Address Pool |
 | SKU | N/A (ALB is always standard) | Standard SKU |
 
-### 4️⃣ Remote State Management (S3)
+### 4️⃣ Remote State Management (S3 + DynamoDB)
 
-The S3 backend provides:
+The S3 + DynamoDB backend provides a complete, production-safe state management solution:
 - Centralised state for team collaboration
 - State versioning for rollback capability
-- AES256 encryption at rest
-- Fully blocked public access (state files must never be public)
-- Drift detection and controlled update workflows
-
-The S3 bucket itself is provisioned by Terraform in `s3-bucket.tf`, making the state infrastructure fully code-managed.
+- AES256 encryption at rest and `encrypt = true` enforced in transit
+- Fully blocked public access
+- **DynamoDB locking prevents two concurrent applies from corrupting state** — the second operation reads the lock and exits immediately with a clear error identifying who holds it and when it was acquired
+- Both the S3 bucket and the DynamoDB table are provisioned by Terraform itself — state infrastructure is fully code-managed
 
 ### 5️⃣ Consistent Tagging Strategy
 
@@ -250,24 +252,38 @@ git clone https://github.com/sanjog-shrestha/Modular-Multi-Cloud-Deployment-with
 cd Modular-Multi-Cloud-Deployment-with-Terraform-AWS-Azure-
 ```
 
-**2. Initialize Terraform**
+**2. Create the DynamoDB lock table first**
+```bash
+terraform apply -target=aws_dynamodb_table.terraform_locks
+```
+
+> This must be done before `terraform init` so the lock table exists when the backend is initialised.
+
+**3. Initialize Terraform**
 ```bash
 terraform init
 ```
 
-**3. Validate Configuration**
+**4. Validate Configuration**
 ```bash
 terraform validate
 ```
 
-**4. Review Execution Plan**
+**5. Review Execution Plan**
 ```bash
 terraform plan
 ```
 
-**5. Apply Infrastructure**
+**6. Apply Infrastructure**
 ```bash
 terraform apply
+```
+
+> ⚠️ If you encounter `already exists` errors on Azure NSG rules, import the existing resources before applying:
+```bash
+terraform import module.azure[0].azurerm_network_security_rule.http "/subscriptions/<subscription-id>/resourceGroups/multi-cloud-rg/providers/Microsoft.Network/networkSecurityGroups/multi-cloud-nsg/securityRules/allow-http"
+
+terraform import module.azure[0].azurerm_network_security_rule.lb_health_probe "/subscriptions/<subscription-id>/resourceGroups/multi-cloud-rg/providers/Microsoft.Network/networkSecurityGroups/multi-cloud-nsg/securityRules/allow-lb-health-probe"
 ```
 
 ---
@@ -277,7 +293,6 @@ terraform apply
 > 📸 **Apply Screenshot:**
 <img width="746" height="137" alt="image" src="https://github.com/user-attachments/assets/9c4c0908-7836-4b3b-80ec-d05ffa016c22" />
 
-
 ---
 
 ## 🌐 Application Validation
@@ -285,8 +300,9 @@ terraform apply
 Once deployed, Terraform outputs the public endpoints for both clouds:
 
 ```
-aws_alb_dns    = "multi-cloud-alb-xxxxxxxxxxxx.eu-west-2.elb.amazonaws.com"
-azure_lb_ip    = "xx.xx.xx.xx"
+aws_alb_dns          = "multi-cloud-alb-xxxxxxxxxxxx.eu-west-2.elb.amazonaws.com"
+azure_lb_ip          = "xx.xx.xx.xx"
+dynamodb_lock_table  = "multi-cloud-tf-locks"
 ```
 
 Open each in your browser to verify the web application is running and load-balanced correctly on both clouds.
@@ -306,7 +322,7 @@ Open each in your browser to verify the web application is running and load-bala
 | Load Balancer | Application Load Balancer (ALB) | Standard Load Balancer |
 | LB Public IP | DNS-based (dynamic) | Static Public IP (Standard SKU) |
 | Health Check | Target Group HTTP probe | LB HTTP probe on `/` |
-| State Backend | S3 (versioned + encrypted) | — (shared S3 backend) |
+| State Backend | S3 (versioned + encrypted) + DynamoDB lock | — (shared S3 + DynamoDB backend) |
 | Provisioning Tool | Terraform AWS Provider `~> 5.100.0` | Terraform AzureRM Provider `~> 3.117.1` |
 
 ---
@@ -318,7 +334,11 @@ Open each in your browser to verify the web application is running and load-bala
 - Conditional module invocation via boolean deployment flags
 - Application Load Balancer (AWS) and Standard Load Balancer (Azure) provisioning
 - Remote backend state management with S3 (versioned, encrypted, public-access-blocked)
-- S3 state bucket provisioned and managed by Terraform itself
+- **DynamoDB state locking to prevent concurrent apply conflicts**
+- **`prevent_destroy` lifecycle rule to protect critical shared infrastructure**
+- **`terraform apply -target` for controlled incremental provisioning**
+- **`terraform import` for bringing existing resources under Terraform management**
+- S3 state bucket and DynamoDB lock table both provisioned and managed by Terraform itself
 - Consistent cross-cloud tagging strategy for resource grouping and cost tracking
 - Cloud networking fundamentals across both providers
 - Provider abstraction and infrastructure portability
@@ -332,9 +352,11 @@ This project demonstrates the ability to:
 - Architect cloud-agnostic infrastructure deployable across multiple providers
 - Implement modular Terraform design patterns with clean module separation
 - Deploy load-balanced infrastructure simultaneously on AWS and Azure
-- Manage remote state securely with versioning and encryption
+- Manage remote state securely with versioning, encryption, and concurrent write protection
 - Apply consistent tagging and naming conventions across cloud providers
 - Use conditional logic to control multi-cloud deployment scope
+- **Protect shared Terraform state with DynamoDB locking for safe team and CI/CD use**
+- **Recover from state drift using `terraform import` for out-of-band resources**
 
 ---
 
@@ -345,7 +367,7 @@ Potential enhancements:
 - [ ] HTTPS on both load balancers (ACM on AWS, Azure Key Vault cert on Azure)
 - [ ] DNS-based failover with Route 53 and Azure Traffic Manager
 - [ ] Active-passive multi-cloud routing for disaster recovery
-- [ ] DynamoDB state locking to prevent concurrent apply conflicts
+- [x] ~~DynamoDB state locking to prevent concurrent apply conflicts~~ ✅ Completed
 - [ ] GCP module addition for true three-cloud deployment
 - [ ] Cost estimation with Infracost integration
 - [ ] Monitoring stack (CloudWatch + Azure Monitor)

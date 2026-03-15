@@ -31,3 +31,8 @@ output "azure_lb_public_ip" {
   value       = module.azure[0].azure_lb_public_ip
   sensitive   = true
 }
+
+output "dynamodb_lock_table" {
+  description = "DynamoDB table name used for Terraform state locking"
+  value       = aws_dynamodb_table.terraform_locks.name
+}

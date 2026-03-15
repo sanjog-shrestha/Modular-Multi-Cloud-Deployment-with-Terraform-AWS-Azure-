@@ -16,9 +16,9 @@
 #   * This enables conditional deployment without manual changes to this file.
 # - `source` specifies the relative path to the AWS module.
 module "aws" {
-  source = "./modules/aws"        # Path to AWS module directory
-  count  = var.deploy_aws ? 1 : 0 # Deploy if 'deploy_aws' is true
-  aws_region = var.aws_region 
+  source     = "./modules/aws"        # Path to AWS module directory
+  count      = var.deploy_aws ? 1 : 0 # Deploy if 'deploy_aws' is true
+  aws_region = var.aws_region
 }
 
 # -----------------------------------------------------------------------------

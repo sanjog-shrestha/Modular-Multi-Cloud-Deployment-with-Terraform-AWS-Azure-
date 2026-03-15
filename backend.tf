@@ -16,7 +16,7 @@ terraform {
     aws = {
       source  = "hashicorp/aws"
       version = "~> 5.100.0"
-    }  
+    }
     azurerm = {
       source  = "hashicorp/azurerm"
       version = "~> 3.117.1"
@@ -24,8 +24,10 @@ terraform {
   }
 
   backend "s3" {
-    bucket = "multi-cloud-tf-state-19" # S3 bucket where the Terraform state file is stored
-    key    = "terraform.tfstate"       # Path/key of the state file within the bucket
-    region = "eu-west-2"               # AWS region where the S3 bucket resides
+    bucket         = "multi-cloud-tf-state-19" # S3 bucket where the Terraform state file is stored
+    key            = "terraform.tfstate"       # Path/key of the state file within the bucket
+    region         = "eu-west-2"               # AWS region where the S3 bucket resides
+    dynamodb_table = "multi-cloud-tf-locks"    # DynamoDB table used for remote state locking
+    encrypt        = true                      # Enable server-side encryption for the state file
   }
 }
