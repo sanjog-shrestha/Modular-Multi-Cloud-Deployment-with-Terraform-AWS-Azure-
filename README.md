@@ -122,8 +122,7 @@ terraform {
 <img width="1915" height="512" alt="image" src="https://github.com/user-attachments/assets/dcffa123-2590-4002-b8f3-647aea6a15d0" />
 
 > 📸 **DynamoDB Lock Table Screenshot:**
-<!-- TO ADD: Go to AWS Console → DynamoDB → Tables → multi-cloud-tf-locks → take a screenshot showing the table exists → upload to GitHub and replace this line with the img tag -->
-> ⚠️ *Replace this line with your DynamoDB lock table screenshot after applying infrastructure*
+<img width="1916" height="447" alt="Image" src="https://github.com/user-attachments/assets/1253b24e-d365-4455-8bec-03c93a0a89a2" />
 
 ---
 
