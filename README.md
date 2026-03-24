@@ -236,6 +236,27 @@ Every resource across both clouds is tagged with `project = "multi-cloud-demo"`,
 
 ---
 
+## 🔐 HTTPS Implementation Details
+
+This project implements HTTPS differently across cloud providers, demonstrating real-world architectural differences:
+
+### AWS
+- HTTPS is handled via **CloudFront distribution**
+- TLS termination occurs at the edge (CDN layer)
+- ALB operates behind CloudFront
+- Provides global low-latency secure access
+
+### Azure
+- Azure Standard Load Balancer operates at **Layer 4 (TCP)**
+- TLS is handled directly by **NGINX running on the VM**
+- Load balancer forwards encrypted traffic (port 443)
+- Custom `/health` endpoint ensures proper backend health checks
+
+This demonstrates the difference between:
+- **Layer 7 (AWS ALB + CloudFront)**
+- **Layer 4 (Azure LB + application-level TLS)**
+
+---
 ## 🚀 Deployment Instructions
 
 ### Prerequisites
@@ -387,23 +408,4 @@ This project is intended for educational and portfolio purposes.
 
 ---
 
-## 🔐 HTTPS Implementation Details
-
-This project implements HTTPS differently across cloud providers, demonstrating real-world architectural differences:
-
-### AWS
-- HTTPS is handled via **CloudFront distribution**
-- TLS termination occurs at the edge (CDN layer)
-- ALB operates behind CloudFront
-- Provides global low-latency secure access
-
-### Azure
-- Azure Standard Load Balancer operates at **Layer 4 (TCP)**
-- TLS is handled directly by **NGINX running on the VM**
-- Load balancer forwards encrypted traffic (port 443)
-- Custom `/health` endpoint ensures proper backend health checks
-
-This demonstrates the difference between:
-- **Layer 7 (AWS ALB + CloudFront)**
-- **Layer 4 (Azure LB + application-level TLS)**
 
