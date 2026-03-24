@@ -311,7 +311,8 @@ terraform import module.azure[0].azurerm_network_security_rule.lb_health_probe "
 ## 🔍 Terraform Apply Output
 
 > 📸 **Apply Screenshot:**
-<img width="746" height="137" alt="image" src="https://github.com/user-attachments/assets/9c4c0908-7836-4b3b-80ec-d05ffa016c22" />
+<img width="846" height="242" alt="image" src="https://github.com/user-attachments/assets/aa89360e-1ab4-4b2a-a715-5b2f080eff09" />
+
 
 ---
 
@@ -328,7 +329,9 @@ dynamodb_lock_table  = "multi-cloud-tf-locks"
 Open each in your browser to verify the web application is running and load-balanced correctly on both clouds.
 
 > 📸 **App Validation Screenshot:**
-<img width="1918" height="637" alt="image" src="https://github.com/user-attachments/assets/c956b41e-5995-4140-b2f4-2af7feb60b82" />
+<img width="1912" height="1007" alt="image" src="https://github.com/user-attachments/assets/5d01ee2c-8c99-49c2-b768-c7f32b416e2e" />
+
+
 
 ---
 
