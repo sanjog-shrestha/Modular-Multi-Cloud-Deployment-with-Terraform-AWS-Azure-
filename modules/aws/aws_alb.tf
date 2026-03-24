@@ -94,3 +94,59 @@ resource "aws_lb_target_group_attachment" "web" {
     target_id = aws_instance.web.id 
     port = 80
 }
+
+# [NEW - HTTPS] CloudFront distribution — free trusted HTTPS on *.cloudfront.net.
+# No domain, no ACM certificate, no browser warning.
+resource "aws_cloudfront_distribution" "app" {
+  enabled             = true
+  comment             = "multi-cloud-demo AWS HTTPS distribution"
+  default_root_object = ""
+
+  # Origin — ALB receives HTTP from CloudFront on port 80
+  origin {
+    domain_name = aws_lb.main.dns_name
+    origin_id   = "multi-cloud-alb-origin"
+
+    custom_origin_config {
+      http_port  = 80
+      https_port = 443
+      # CRITICAL: must be http-only — ALB has no HTTPS listener.
+      # Using https-only causes a 504 Gateway Timeout.
+      origin_protocol_policy = "http-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
+  default_cache_behavior {
+    target_origin_id       = "multi-cloud-alb-origin"
+    viewer_protocol_policy = "redirect-to-https"
+
+    allowed_methods = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods  = ["GET", "HEAD"]
+
+    # Disable caching — pass all requests through to EC2 in real time
+    forwarded_values {
+      query_string = true
+      headers      = ["*"]
+      cookies { forward = "all" }
+    }
+
+    min_ttl     = 0
+    default_ttl = 0
+    max_ttl     = 0
+    compress    = true
+  }
+
+  restrictions {
+    geo_restriction { restriction_type = "none" }
+  }
+
+  # Free AWS-managed certificate on *.cloudfront.net — globally trusted
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
+
+  depends_on = [aws_lb_listener.http]
+
+  tags = { project = "multi-cloud-demo" }
+}

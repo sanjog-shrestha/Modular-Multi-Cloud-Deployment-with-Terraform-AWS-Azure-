@@ -11,7 +11,7 @@ The design follows infrastructure-as-code best practices:
 - Separate Terraform modules per cloud provider
 - Root module orchestration with conditional deployment logic
 - Remote backend state management (S3 with versioning, encryption, and DynamoDB state locking)
-- Application Load Balancer on AWS and Standard Load Balancer on Azure
+- HTTPS-enabled Application Load Balancer on AWS (via CloudFront) and Standard Load Balancer on Azure (NGINX TLS)
 - Reusable, maintainable, and cloud-agnostic infrastructure components
 
 This project highlights **cloud-agnostic design**, **infrastructure modularity**, **load balancer provisioning across providers**, and **Terraform state consistency** across cloud environments.
@@ -58,7 +58,7 @@ Root Module (main.tf)
 |---|---|
 | VPC | Custom network with DNS support enabled |
 | Public Subnets (×2) | Multi-AZ subnets for ALB and EC2 |
-| Security Group (ALB) | Allows HTTP (port 80) from internet |
+| Security Group (ALB) | Allows HTTP (80) and HTTPS (443) from internet |
 | Security Group (EC2) | Allows HTTP from ALB only |
 | EC2 Instance | Ubuntu with Dockerized Nginx web server |
 | Application Load Balancer | Internet-facing ALB across both public subnets |
@@ -79,7 +79,7 @@ Root Module (main.tf)
 | Resource Group | Container for all Azure resources |
 | Virtual Network (VNet) | `10.0.0.0/16` address space |
 | Subnet | `10.0.1.0/24` for VM placement |
-| Network Security Group | Controls inbound/outbound traffic |
+| Network Security Group | Allows HTTP (80) and HTTPS (443) traffic |
 | Virtual Machine | Web server in the VNet subnet |
 | Public IP (Static) | Standard SKU static IP for the Load Balancer |
 | Standard Load Balancer | Internet-facing LB with frontend IP configuration |
@@ -363,7 +363,7 @@ This project demonstrates the ability to:
 
 Potential enhancements:
 
-- [ ] HTTPS on both load balancers (ACM on AWS, Azure Key Vault cert on Azure)
+- [x] HTTPS enabled on both AWS (CloudFront + ALB) and Azure (NGINX TLS behind Load Balancer) ✅
 - [ ] DNS-based failover with Route 53 and Azure Traffic Manager
 - [ ] Active-passive multi-cloud routing for disaster recovery
 - [x] ~~DynamoDB state locking to prevent concurrent apply conflicts~~ ✅ Completed
@@ -383,3 +383,27 @@ Potential enhancements:
 ## 📜 License
 
 This project is intended for educational and portfolio purposes.
+
+
+---
+
+## 🔐 HTTPS Implementation Details
+
+This project implements HTTPS differently across cloud providers, demonstrating real-world architectural differences:
+
+### AWS
+- HTTPS is handled via **CloudFront distribution**
+- TLS termination occurs at the edge (CDN layer)
+- ALB operates behind CloudFront
+- Provides global low-latency secure access
+
+### Azure
+- Azure Standard Load Balancer operates at **Layer 4 (TCP)**
+- TLS is handled directly by **NGINX running on the VM**
+- Load balancer forwards encrypted traffic (port 443)
+- Custom `/health` endpoint ensures proper backend health checks
+
+This demonstrates the difference between:
+- **Layer 7 (AWS ALB + CloudFront)**
+- **Layer 4 (Azure LB + application-level TLS)**
+

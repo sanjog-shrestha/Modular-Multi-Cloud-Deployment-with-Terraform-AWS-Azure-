@@ -1,35 +1,44 @@
-# -----------------------------------------------------------------------------
-# Root Module Outputs
-#
-# These outputs surface key values from the AWS and Azure modules so they can be
-# easily consumed after `terraform apply` (e.g. for testing in a browser or for
-# wiring into other systems).
-# -----------------------------------------------------------------------------
-
-# ID of the AWS EC2 instance created in the AWS module.
+# EC2 instance ID
 output "instance_id" {
   description = "ID of the EC2 instance"
   value       = module.aws[0].instance_id
   sensitive   = true
 }
 
-# DNS name of the AWS Application Load Balancer fronting the EC2 instance.
+# Raw ALB DNS — internal origin
 output "aws_alb_dns" {
-  description = "AWS ALB DNS name - paste into browser to access the AWS app"
+  description = "AWS ALB DNS — internal origin, use aws_https_url to access the app"
   value       = module.aws[0].aws_alb_dns
 }
 
-# Name of the Azure Resource Group created by the Azure module.
+# [NEW - HTTPS] Primary AWS HTTPS URL via CloudFront
+output "aws_https_url" {
+  description = "AWS HTTPS URL via CloudFront — trusted certificate, no browser warning"
+  value       = module.aws[0].aws_https_url
+}
+
+# [NEW - HTTPS] CloudFront domain name
+output "cloudfront_domain" {
+  description = "CloudFront distribution domain name"
+  value       = module.aws[0].cloudfront_domain
+}
+
+# Azure Resource Group name
 output "resource_group_name" {
-  description = "Azure Resource Group Name"
+  description = "Azure Resource Group name"
   value       = module.azure[0].resource_group_name
 }
 
-# Public IP address of the Azure Load Balancer; open this in a browser to test the Azure app.
+# Azure LB public IP
 output "azure_lb_public_ip" {
-  description = "Azure Load Balancer public IP - paste into browser to access the Azure app"
+  description = "Azure Load Balancer public IP"
   value       = module.azure[0].azure_lb_public_ip
-  sensitive   = true
+}
+
+# [NEW - HTTPS] Azure HTTPS URL via self-signed certificate
+output "azure_https_url" {
+  description = "Azure HTTPS URL — self-signed cert, click Advanced → Proceed in browser"
+  value       = module.azure[0].azure_https_url
 }
 
 output "dynamodb_lock_table" {

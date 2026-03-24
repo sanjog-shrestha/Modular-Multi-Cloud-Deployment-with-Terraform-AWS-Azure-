@@ -21,6 +21,16 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 3.117.1"
     }
+    # [NEW] Required for tls_private_key in modules/azure/main.tf
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.0"
+    }
+    # Required for local_file in modules/azure/main.tf
+    local = {
+      source  = "hashicorp/local"
+      version = "~> 2.0"
+    }
   }
 
   backend "s3" {
@@ -29,5 +39,5 @@ terraform {
     region         = "eu-west-2"               # AWS region where the S3 bucket resides
     dynamodb_table = "multi-cloud-tf-locks"    # DynamoDB table used for remote state locking
     encrypt        = true                      # Enable server-side encryption for the state file
-  }
+    }
 }

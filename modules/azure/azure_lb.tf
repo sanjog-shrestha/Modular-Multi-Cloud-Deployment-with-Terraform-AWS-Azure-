@@ -56,6 +56,14 @@ resource "azurerm_lb_probe" "http" {
     request_path    = "/"
 }
 
+# TCP health probe on port 443
+resource "azurerm_lb_probe" "https" {
+    name = "https-probe"
+    loadbalancer_id = azurerm_lb.main.id 
+    protocol = "Tcp"
+    port = 443 
+}
+
 # Load-balancing rule that maps frontend HTTP traffic to backend pool port 80.
 resource "azurerm_lb_rule" "http" {
     name                           = "http-rule"
@@ -68,6 +76,18 @@ resource "azurerm_lb_rule" "http" {
     probe_id                       = azurerm_lb_probe.http.id
 }
 
+# HTTPS load balancing rule — port 443 → VM port 443.
+# Azure Standard LB is Layer 4 only — TLS terminates at Nginx on the VM.
+resource "azurerm_lb_rule" "https" {
+    name                           = "https-rule"
+    loadbalancer_id                = azurerm_lb.main.id
+    protocol                       = "Tcp"
+    frontend_port                  = 443
+    backend_port                   = 443
+    frontend_ip_configuration_name = "frontend"
+    backend_address_pool_ids       = [azurerm_lb_backend_address_pool.main.id]
+    probe_id                       = azurerm_lb_probe.https.id
+}
 # ✅ Connect Azure VM NIC to the LB backend pool
 resource "azurerm_network_interface_backend_address_pool_association" "main" {
   network_interface_id    = azurerm_network_interface.main.id
@@ -75,6 +95,7 @@ resource "azurerm_network_interface_backend_address_pool_association" "main" {
   backend_address_pool_id = azurerm_lb_backend_address_pool.main.id
 }
 
+# NSG rule — allow HTTP on port 80
 resource "azurerm_network_security_rule" "http" {
     name = "allow-http"
     priority = 110
@@ -83,6 +104,21 @@ resource "azurerm_network_security_rule" "http" {
     protocol = "Tcp"
     source_port_range = "*"
     destination_port_range = "80" 
+    source_address_prefix = "*"
+    destination_address_prefix = "*"
+    resource_group_name = azurerm_resource_group.main.name 
+    network_security_group_name = azurerm_network_security_group.main.name
+}
+
+# NSG rule — allow HTTPS on port 443
+resource "azurerm_network_security_rule" "https" {
+    name = "allow-https"
+    priority = 120
+    direction = "Inbound"
+    access = "Allow"
+    protocol = "Tcp"
+    source_port_range = "*"
+    destination_port_range = "443" 
     source_address_prefix = "*"
     destination_address_prefix = "*"
     resource_group_name = azurerm_resource_group.main.name 

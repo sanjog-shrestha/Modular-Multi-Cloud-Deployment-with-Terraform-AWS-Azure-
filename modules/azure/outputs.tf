@@ -1,21 +1,20 @@
-
-# -----------------------------------------------------------------------------
-# Outputs for Azure Module
-#
-# These outputs expose key Azure resource attributes to the root module or
-# consumers of this module, making it easy to reference important values:
-#   - The name of the created Resource Group
-#   - The public IP address of the Azure Load Balancer (for browser access)
-# -----------------------------------------------------------------------------
-
-# Name of the Azure Resource Group created in this module.
 output "resource_group_name" {
-    description = "Azure Resource Group Name"
-    value       = azurerm_resource_group.main.name
+  description = "Azure Resource Group name"
+  value       = azurerm_resource_group.main.name
 }
 
-# Public IP address of the Azure Load Balancer; open this in a browser to test the app.
 output "azure_lb_public_ip" {
-    description = "Azure Load Balancer public IP - paste into browser to access app"
-    value       = azurerm_public_ip.lb.ip_address
+  description = "Azure Load Balancer public IP"
+  value       = azurerm_public_ip.lb.ip_address
+}
+
+output "azure_https_url" {
+  description = "Azure HTTPS URL — self-signed cert, click Advanced → Proceed in browser"
+  value       = "https://${azurerm_public_ip.lb.ip_address}"
+}
+
+# [NEW] SSH command using the auto-generated key
+output "azure_ssh_command" {
+  description = "SSH command to connect to the Azure VM"
+  value       = "ssh -i ${path.module}/azure-key.pem adminuser@${azurerm_public_ip.lb.ip_address}"
 }

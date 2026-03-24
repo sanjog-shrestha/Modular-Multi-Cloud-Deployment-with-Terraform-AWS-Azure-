@@ -11,20 +11,20 @@
 # - `lifecycle.prevent_destroy = true` protects the table from accidental deletion.
 # -----------------------------------------------------------------------------
 resource "aws_dynamodb_table" "terraform_locks" {
-    name         = "multi-cloud-tf-locks" # Table name referenced by the S3 backend
-    billing_mode = "PAY_PER_REQUEST"      # On-demand capacity; no need to manage RCU/WCU
-    hash_key     = "LockID"               # Partition key for the lock item
+  name         = "multi-cloud-tf-locks" # Table name referenced by the S3 backend
+  billing_mode = "PAY_PER_REQUEST"      # On-demand capacity; no need to manage RCU/WCU
+  hash_key     = "LockID"               # Partition key for the lock item
 
-    attribute {
-      name = "LockID"
-      type = "S"                          # String type attribute used as the primary key
-    }
+  attribute {
+    name = "LockID"
+    type = "S" # String type attribute used as the primary key
+  }
 
-    lifecycle {
-      prevent_destroy = true              # Avoid accidental removal of the lock table
-    }
+  lifecycle {
+    prevent_destroy = true # Avoid accidental removal of the lock table
+  }
 
-    tags = {
-      project = "multi-cloud-demo"        # Tag to identify this table as part of the demo
-    }
+  tags = {
+    project = "multi-cloud-demo" # Tag to identify this table as part of the demo
+  }
 }
